@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargando...</title>
+
+    <style>
+        :root {
+            --color-primario: #5B738A;
+            --color-acento: #8b5a42;
+            --color-instrucciones: #A65233;
+            --color-fondo: #f7f4eb;
+            --color-tarjeta: rgba(255, 255, 255, 0.75);
+            --color-borde-tarjeta: rgba(212, 175, 55, 0.1);
+            --color-texto: #4a423d;
+            --color-borde: #dcd6cd;
+            --color-input-fondo: #fcfbfa;
+            --color-separador: #efeae2;
+            --color-sugerencias-hover: rgba(91, 115, 138, 0.12);
+            --color-error: #a94442;
+            --color-error-hint: #0D2E07;
+            --color-aviso: #7a8462;
+            --fuente-titulo: 'Cinzel', serif;
+            --fuente-texto: 'Montserrat', sans-serif;
+        }
+
+        body {
+            font-family: var(--fuente-texto);
+            background-color: var(--color-fondo);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .tarjeta {
+            background: var(--color-tarjeta);
+            padding: 40px 25px;
+            border-radius: 20px !important;
+            box-shadow: 0 10px 40px rgba(139, 126, 116, 0.12);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            border: 1px solid var(--color-borde-tarjeta);
+        }
+
+        h1 {
+            font-family: var(--fuente-titulo);
+            font-size: 2.2rem;
+            color: var(--color-primario);
+            letter-spacing: 2px;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        p.instrucciones {
+            font-size: 13px;
+            color: var(--color-instrucciones);
+            margin-bottom: 25px;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        .input-contenedor {
+            max-height: 100px;
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
+        }
+
+        .input-contenedor.oculto {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid var(--color-borde);
+            background-color: var(--color-input-fondo);
+            border-radius: 25px;
+            text-align: center;
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+            font-family: var(--fuente-texto);
+            color: var(--color-texto);
+            transition: border-color 0.3s;
+        }
+
+        input:focus { border-color: var(--color-primario); }
+
+        button {
+            background: var(--color-primario);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: background 0.3s, transform 0.1s;
+            margin-top: 10px;
+            font-family: var(--fuente-texto);
+        }
+
+        button:active { transform: scale(0.98); }
+
+        h2 {
+            color: var(--color-texto);
+            margin-top: 25px;
+            font-size: 1.3rem;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        h2 strong {
+            color: var(--color-acento);
+            font-family: var(--fuente-titulo);
+            font-size: 2.2rem;
+            display: block;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+
+        .error { color: var(--color-error); font-size: 14px; }
+        .error-hint { color: var(--color-error-hint); font-weight: 300; }
+        .extra-anfitriona { color: var(--color-acento); font-size: 14px; font-weight: 600; display: block; margin-top: 2px; }
+        .aviso-ninos { color: var(--color-aviso); font-size: 20px; font-weight: 600; display: block; margin-top: 5px; }
+
+        .mapa-contenedor {
+            margin-top: 25px;
+            border: 1px solid #eae5dc;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #ffffff;
+            display: none;
+            box-shadow: 0 8px 25px rgba(139, 126, 116, 0.08);
+        }
+
+        .mapa-contenedor.visible {
+            display: block;
+            animation: desplegarMapa 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mapa-contenedor img { width: 100%; height: auto; display: block; }
+
+        @keyframes desplegarMapa {
+            from { opacity: 0; transform: translateY(20px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .sugerencias-wrapper { position: relative; z-index: 30; }
+
+        .sugerencias {
+            position: absolute;
+            top: 2px; left: 0; right: 0;
+            margin: 0; padding: 6px 0;
+            list-style: none;
+            background: var(--color-input-fondo);
+            border: 1px solid var(--color-borde);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(139, 126, 116, 0.25);
+            max-height: 220px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .sugerencias li {
+            padding: 12px 18px;
+            font-size: 14px;
+            color: var(--color-texto);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .sugerencias li + li { border-top: 1px solid var(--color-separador); }
+        .sugerencias li:hover, .sugerencias li.activa { background: var(--color-sugerencias-hover); }
+        .oculto-lista { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="tarjeta">
+    <h1 id="tituloEvento">XV's Sophia</h1>
+    <p id="subtitulo" class="instrucciones">Ingresa tu nombre y apellido para conocer tu mesa:</p>
+
+    <div id="inputBlock" class="input-contenedor">
+        <input type="text" id="nombreInvitado" placeholder="Ej. Sophia Najera" autocomplete="off">
+    </div>
+
+    <div class="sugerencias-wrapper">
+        <ul id="listaSugerencias" class="sugerencias oculto-lista"></ul>
+    </div>
+
+    <button id="btnAccion" onclick="controladorBoton()">Buscar Mesa</button>
+
+    <h2 id="resultado"></h2>
+
+    <div id="mapaArea" class="mapa-contenedor">
+        <img id="croquisImagen" src="" alt="Croquis de la mesa">
+    </div>
+</div>
+
+<script src="config.js"></script>
+
+<script>
+    let listaInvitados = [];
+    let enModoResultado = false;
+
+    function aplicarConfiguracion() {
+        const t = CONFIG.textos;
+        const root = document.documentElement.style;
+
+        const mapaVars = {
+            primario: '--color-primario',           acento: '--color-acento',
+            instrucciones: '--color-instrucciones',  fondo: '--color-fondo',
+            tarjeta: '--color-tarjeta',              bordeTarjeta: '--color-borde-tarjeta',
+            texto: '--color-texto',                  borde: '--color-borde',
+            inputFondo: '--color-input-fondo',       separador: '--color-separador',
+            sugerenciasHover: '--color-sugerencias-hover',
+            error: '--color-error',                  errorHint: '--color-error-hint',
+            aviso: '--color-aviso',
+        };
+        for (const [clave, variable] of Object.entries(mapaVars)) {
+            if (CONFIG.tema.colores[clave]) root.setProperty(variable, CONFIG.tema.colores[clave]);
+        }
+
+        const f = CONFIG.tema.fuentes;
+        root.setProperty('--fuente-titulo', `'${f.titulo.nombre}', serif`);
+        root.setProperty('--fuente-texto', `'${f.texto.nombre}', sans-serif`);
+        const fam = n => n.trim().replace(/ /g, '+');
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${fam(f.titulo.nombre)}:wght@${f.titulo.pesos}&family=${fam(f.texto.nombre)}:wght@${f.texto.pesos}&display=swap`;
+        document.head.appendChild(link);
+
+        document.title = t.tituloPagina;
+        document.getElementById('tituloEvento').textContent = t.titulo;
+        document.getElementById('subtitulo').textContent = t.instrucciones;
+        document.getElementById('nombreInvitado').placeholder = t.placeholder;
+        document.getElementById('btnAccion').textContent = t.botonBuscar;
+
+        document.body.style.backgroundImage = `url("${CONFIG.tema.imagenes.fondo}")`;
+    }
+
+    function rellenar(texto, datos) {
+        return texto.replace(/\{(\w+)\}/g, (_, clave) => datos[clave] ?? '');
+    }
+
+    // ✅ BLINDADA: acepta {record:[...]} o array directo; nunca deja listaInvitados roto
+    async function cargarInvitados() {
+        try {
+            const respuesta = await fetch(CONFIG.datos.urlInvitados);
+            if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status + ' (¿bin privado o URL mal?)');
+            const data = await respuesta.json();
+            listaInvitados = Array.isArray(data) ? data : (Array.isArray(data.record) ? data.record : []);
+            console.log('Invitados listos:', listaInvitados.length);
+            if (!listaInvitados.length) console.warn('⚠️ La lista vino vacía: revisa el contenido del bin');
+        } catch (error) {
+            listaInvitados = [];
+            console.error('Error al cargar la lista:', error);
+        }
+    }
+
+    function normalizarTexto(texto) {
+        return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    }
+
+    function controladorBoton() {
+        if (!enModoResultado) buscarMesa();
+        else regresarHome();
+    }
+
+    function mostrarCroquis(mesa) {
+        const croquisImagen = document.getElementById('croquisImagen');
+        const mapaArea = document.getElementById('mapaArea');
+        const url = rellenar(CONFIG.tema.imagenes.croquis, { mesa });
+        console.log('🗺️ Croquis:', url);
+        croquisImagen.onerror = () => {
+            console.warn('❌ No existe, uso el general');
+            croquisImagen.onerror = null;
+            croquisImagen.src = CONFIG.tema.imagenes.croquisGeneral;
+        };
+        croquisImagen.src = url;
+        mapaArea.classList.add('visible');
+    }
+
+    function buscarMesa() {
+        const t = CONFIG.textos;
+        const selectorInput = document.getElementById('nombreInvitado').value;
+        const selectorResultado = document.getElementById('resultado');
+        const mapaArea = document.getElementById('mapaArea');
+        const inputBlock = document.getElementById('inputBlock');
+        const btnAccion = document.getElementById('btnAccion');
+        const subtitulo = document.getElementById('subtitulo');
+
+        if (!selectorInput) { alert(t.alertaVacio); return; }
+
+        // ✅ Si la lista no cargó, se dice en pantalla en vez de morir en silencio
+        if (!listaInvitados.length) {
+            selectorResultado.innerHTML = `<span class='error'>La lista de invitados no está disponible ahorita 😢<br><span class='error-hint'>Recarga la página en unos minutos.</span></span>`;
+            return;
+        }
+
+        const busquedaLimpia = normalizarTexto(selectorInput);
+        const encontrado = listaInvitados.find(inv => normalizarTexto(inv.name) === busquedaLimpia);
+
+        if (encontrado) {
+            ocultarLista();
+            subtitulo.innerText = t.bienvenida;
+
+            const datosMensaje = {
+                nombre: encontrado.name,
+                mesa: encontrado.table,
+                extraAnfitriona: t.extraAnfitriona,
+                avisoNinos: t.avisoNinos,
+            };
+            const nombreMesa = normalizarTexto(encontrado.table);
+            const mesasNinos = CONFIG.especiales.mesasNinos.map(normalizarTexto);
+            const esAnfitrion = CONFIG.especiales.anfitriones
+                .map(normalizarTexto)
+                .includes(normalizarTexto(encontrado.name));
+
+            // Detecta si la mesa es solo números (ej: "1", "42")
+            const mesaEsNumero = /^\d+$/.test(encontrado.table);
+
+            if (esAnfitrion) {
+                subtitulo.innerText = t.bienvenidaAnfitriona;
+                // Si la mesa es número, usa el template sin "de"
+                if (mesaEsNumero) {
+                    selectorResultado.innerHTML = rellenar(t.mensajeAnfitrionaNumero, datosMensaje);
+                } else {
+                    selectorResultado.innerHTML = rellenar(t.mensajeAnfitriona, datosMensaje);
+                }
+                mostrarCroquis(encontrado.table);
+            } else if (mesasNinos.includes(nombreMesa)) {
+                selectorResultado.innerHTML = rellenar(t.mensajeNinos, datosMensaje);
+                mapaArea.classList.remove('visible');
+            } else {
+                selectorResultado.innerHTML = rellenar(t.mensajeMesa, datosMensaje);
+                mostrarCroquis(encontrado.table);
+            }
+
+            inputBlock.classList.add('oculto');
+            btnAccion.innerText = t.botonRegresar;
+            enModoResultado = true;
+
+        } else {
+            selectorResultado.innerHTML = `<span class='error'>${t.errorNombre}<br><span class='error-hint'>${t.errorHint}</span></span>`;
+            mapaArea.classList.remove('visible');
+        }
+    }
+
+    function regresarHome() {
+        const t = CONFIG.textos;
+        document.getElementById('subtitulo').innerText = t.instrucciones;
+        document.getElementById('nombreInvitado').value = "";
+        document.getElementById('resultado').innerHTML = "";
+        document.getElementById('mapaArea').classList.remove('visible');
+        ocultarLista();
+        document.getElementById('inputBlock').classList.remove('oculto');
+        document.getElementById('btnAccion').innerText = t.botonBuscar;
+        enModoResultado = false;
+    }
+
+    const inputNombre  = document.getElementById('nombreInvitado');
+    const listaSug     = document.getElementById('listaSugerencias');
+    let indiceActivo   = -1;
+    let sugerenciasAct = [];
+
+    function mostrarSugerencias() {
+        const consulta = normalizarTexto(inputNombre.value);
+        listaSug.innerHTML = '';
+        indiceActivo = -1;
+        sugerenciasAct = [];
+
+        if (enModoResultado || consulta.length < 2) return ocultarLista();
+
+        const palabras = consulta.split(/\s+/);
+        sugerenciasAct = listaInvitados
+            .filter(inv => {
+                const n = normalizarTexto(inv.name);
+                return palabras.every(p => n.includes(p));
+            })
+            .slice(0, 8);
+
+        if (!sugerenciasAct.length) return ocultarLista();
+
+        sugerenciasAct.forEach(inv => {
+            const li = document.createElement('li');
+            li.textContent = inv.name;
+            li.addEventListener('mousedown', e => {
+                e.preventDefault();
+                seleccionarSugerencia(inv);
+            });
+            listaSug.appendChild(li);
+        });
+        listaSug.classList.remove('oculto-lista');
+    }
+
+    function seleccionarSugerencia(inv) {
+        inputNombre.value = inv.name;
+        ocultarLista();
+        inputNombre.blur();
+        inputNombre.style.borderColor = CONFIG.tema.colores.primario;
+        setTimeout(() => inputNombre.style.borderColor = '', 600);
+    }
+
+    function ocultarLista() { listaSug.classList.add('oculto-lista'); }
+
+    inputNombre.addEventListener('input', mostrarSugerencias);
+    inputNombre.addEventListener('focus', mostrarSugerencias);
+
+    inputNombre.addEventListener('keydown', e => {
+        const abierta = !listaSug.classList.contains('oculto-lista') && listaSug.children.length > 0;
+        if (!abierta) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            indiceActivo = (indiceActivo + 1) % listaSug.children.length;
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            indiceActivo = (indiceActivo - 1 + listaSug.children.length) % listaSug.children.length;
+        } else if (e.key === 'Escape') {
+            ocultarLista();
+            return;
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (indiceActivo >= 0) seleccionarSugerencia(sugerenciasAct[indiceActivo]);
+            else { ocultarLista(); buscarMesa(); }
+            return;
+        } else return;
+
+        [...listaSug.children].forEach((li, i) => li.classList.toggle('activa', i === indiceActivo));
+        listaSug.children[indiceActivo]?.scrollIntoView({ block: 'nearest' });
+    });
+
+    document.addEventListener('click', e => {
+        if (e.target !== inputNombre && !listaSug.contains(e.target)) ocultarLista();
+    });
+
+    document.getElementById('nombreInvitado').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !enModoResultado) buscarMesa();
+    });
+
+    if (typeof CONFIG === 'undefined') {
+        console.error('Falta el archivo config.js junto al index.html');
+    } else {
+        aplicarConfiguracion();
+        cargarInvitados();
+    }
+</script>
+
+</body>
+</html>
