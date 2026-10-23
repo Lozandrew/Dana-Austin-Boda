@@ -42,6 +42,7 @@
         }
 
         .tarjeta {
+            position: relative; /* NUEVO: ancla para el selector de idioma */
             background: var(--color-tarjeta);
             padding: 40px 25px;
             border-radius: 20px !important;
@@ -52,6 +53,36 @@
             box-sizing: border-box;
             transition: all 0.3s ease;
             border: 1px solid var(--color-borde-tarjeta);
+        }
+
+        /* ═══ NUEVO: selector de idioma ═══ */
+        .idioma-switch {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .idioma-btn {
+            width: auto;
+            padding: 6px 12px;
+            margin-top: 0;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-radius: 12px;
+            background: transparent;
+            color: var(--color-primario);
+            border: 1px solid var(--color-primario);
+            cursor: pointer;
+            font-family: var(--fuente-texto);
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .idioma-btn.activo {
+            background: var(--color-primario);
+            color: #ffffff;
         }
 
         h1 {
@@ -196,6 +227,12 @@
 <body>
 
 <div class="tarjeta">
+    <!-- NUEVO: selector de idioma -->
+    <div class="idioma-switch" aria-label="Idioma / Language">
+        <button type="button" id="btnEs" class="idioma-btn" onclick="cambiarIdioma('es')">ES</button>
+        <button type="button" id="btnEn" class="idioma-btn" onclick="cambiarIdioma('en')">EN</button>
+    </div>
+
     <h1 id="tituloEvento">XV's Sophia</h1>
     <p id="subtitulo" class="instrucciones">Ingresa tu nombre y apellido para conocer tu mesa:</p>
 
@@ -221,9 +258,52 @@
 <script>
     let listaInvitados = [];
     let enModoResultado = false;
+    let ultimoEncontrado = null;
+    let idiomaActual = 'es';
 
+    /* ═══════════ IDIOMAS ═══════════ */
+    function textosActuales() {
+        return CONFIG.textos[idiomaActual] || CONFIG.textos.es;
+    }
+
+    function iniciarIdioma() {
+        const guardado = localStorage.getItem('idiomaApp');
+        if (guardado && CONFIG.textos[guardado]) {
+            idiomaActual = guardado;                       // su elección anterior
+        } else if (CONFIG.detectarNavegador && (navigator.language || '').toLowerCase().startsWith('en')) {
+            idiomaActual = 'en';                           // el celular del invitado está en inglés
+        } else {
+            idiomaActual = CONFIG.idiomaDefault || 'es';
+        }
+    }
+
+    function actualizarBotonesIdioma() {
+        document.getElementById('btnEs').classList.toggle('activo', idiomaActual === 'es');
+        document.getElementById('btnEn').classList.toggle('activo', idiomaActual === 'en');
+    }
+
+    function aplicarTextos() {
+        const t = textosActuales();
+        document.title = t.tituloPagina;
+        document.getElementById('tituloEvento').textContent = t.titulo;
+        document.getElementById('nombreInvitado').placeholder = t.placeholder;
+        document.getElementById('btnAccion').innerText = enModoResultado ? t.botonRegresar : t.botonBuscar;
+        if (!enModoResultado) {
+            document.getElementById('subtitulo').textContent = t.instrucciones;
+        }
+    }
+
+    function cambiarIdioma(idioma) {
+        if (!CONFIG.textos[idioma] || idioma === idiomaActual) return;
+        idiomaActual = idioma;
+        localStorage.setItem('idiomaApp', idioma);
+        aplicarTextos();
+        actualizarBotonesIdioma();
+        if (enModoResultado && ultimoEncontrado) pintarResultado(ultimoEncontrado);
+    }
+
+    /* ═══════════ CONFIGURACIÓN VISUAL ═══════════ */
     function aplicarConfiguracion() {
-        const t = CONFIG.textos;
         const root = document.documentElement.style;
 
         const mapaVars = {
@@ -249,20 +329,18 @@
         link.href = `https://fonts.googleapis.com/css2?family=${fam(f.titulo.nombre)}:wght@${f.titulo.pesos}&family=${fam(f.texto.nombre)}:wght@${f.texto.pesos}&display=swap`;
         document.head.appendChild(link);
 
-        document.title = t.tituloPagina;
-        document.getElementById('tituloEvento').textContent = t.titulo;
-        document.getElementById('subtitulo').textContent = t.instrucciones;
-        document.getElementById('nombreInvitado').placeholder = t.placeholder;
-        document.getElementById('btnAccion').textContent = t.botonBuscar;
-
         document.body.style.backgroundImage = `url("${CONFIG.tema.imagenes.fondo}")`;
+        document.body.style.backgroundPosition = CONFIG.tema.imagenes.fondoPosicion || "center center";
+
+
+        aplicarTextos();
+        actualizarBotonesIdioma();
     }
 
     function rellenar(texto, datos) {
         return texto.replace(/\{(\w+)\}/g, (_, clave) => datos[clave] ?? '');
     }
 
-    // ✅ BLINDADA: acepta {record:[...]} o array directo; nunca deja listaInvitados roto
     async function cargarInvitados() {
         try {
             const respuesta = await fetch(CONFIG.datos.urlInvitados);
@@ -300,20 +378,56 @@
         mapaArea.classList.add('visible');
     }
 
+    /* ═══════════ RESULTADO (pintado según idioma actual) ═══════════ */
+    function pintarResultado(encontrado) {
+        const t = textosActuales();
+        const subtitulo = document.getElementById('subtitulo');
+        const selectorResultado = document.getElementById('resultado');
+        const mapaArea = document.getElementById('mapaArea');
+
+        const datosMensaje = {
+            nombre: encontrado.name,
+            mesa: encontrado.table,
+            extraAnfitriona: t.extraAnfitriona,
+            avisoNinos: t.avisoNinos,
+        };
+        const nombreMesa = normalizarTexto(encontrado.table);
+        const mesasNinos = CONFIG.especiales.mesasNinos.map(normalizarTexto);
+        const esAnfitrion = CONFIG.especiales.anfitriones
+            .map(normalizarTexto)
+            .includes(normalizarTexto(encontrado.name));
+        const mesaEsNumero = /^\d+$/.test(String(encontrado.table));
+
+        subtitulo.innerText = t.bienvenida;
+
+        if (esAnfitrion) {
+            subtitulo.innerText = t.bienvenidaAnfitriona;
+            selectorResultado.innerHTML = rellenar(
+                mesaEsNumero ? t.mensajeAnfitrionaNumero : t.mensajeAnfitriona,
+                datosMensaje
+            );
+            mostrarCroquis(encontrado.table);
+        } else if (mesasNinos.includes(nombreMesa)) {
+            selectorResultado.innerHTML = rellenar(t.mensajeNinos, datosMensaje);
+            mapaArea.classList.remove('visible');
+        } else {
+            selectorResultado.innerHTML = rellenar(t.mensajeMesa, datosMensaje);
+            mostrarCroquis(encontrado.table);
+        }
+    }
+
     function buscarMesa() {
-        const t = CONFIG.textos;
+        const t = textosActuales();
         const selectorInput = document.getElementById('nombreInvitado').value;
         const selectorResultado = document.getElementById('resultado');
         const mapaArea = document.getElementById('mapaArea');
         const inputBlock = document.getElementById('inputBlock');
         const btnAccion = document.getElementById('btnAccion');
-        const subtitulo = document.getElementById('subtitulo');
 
         if (!selectorInput) { alert(t.alertaVacio); return; }
 
-        // ✅ Si la lista no cargó, se dice en pantalla en vez de morir en silencio
         if (!listaInvitados.length) {
-            selectorResultado.innerHTML = `<span class='error'>La lista de invitados no está disponible ahorita 😢<br><span class='error-hint'>Recarga la página en unos minutos.</span></span>`;
+            selectorResultado.innerHTML = `<span class='error'>${t.errorLista}<br><span class='error-hint'>${t.errorListaHint}</span></span>`;
             return;
         }
 
@@ -322,44 +436,11 @@
 
         if (encontrado) {
             ocultarLista();
-            subtitulo.innerText = t.bienvenida;
-
-            const datosMensaje = {
-                nombre: encontrado.name,
-                mesa: encontrado.table,
-                extraAnfitriona: t.extraAnfitriona,
-                avisoNinos: t.avisoNinos,
-            };
-            const nombreMesa = normalizarTexto(encontrado.table);
-            const mesasNinos = CONFIG.especiales.mesasNinos.map(normalizarTexto);
-            const esAnfitrion = CONFIG.especiales.anfitriones
-                .map(normalizarTexto)
-                .includes(normalizarTexto(encontrado.name));
-
-            // Detecta si la mesa es solo números (ej: "1", "42")
-            const mesaEsNumero = /^\d+$/.test(encontrado.table);
-
-            if (esAnfitrion) {
-                subtitulo.innerText = t.bienvenidaAnfitriona;
-                // Si la mesa es número, usa el template sin "de"
-                if (mesaEsNumero) {
-                    selectorResultado.innerHTML = rellenar(t.mensajeAnfitrionaNumero, datosMensaje);
-                } else {
-                    selectorResultado.innerHTML = rellenar(t.mensajeAnfitriona, datosMensaje);
-                }
-                mostrarCroquis(encontrado.table);
-            } else if (mesasNinos.includes(nombreMesa)) {
-                selectorResultado.innerHTML = rellenar(t.mensajeNinos, datosMensaje);
-                mapaArea.classList.remove('visible');
-            } else {
-                selectorResultado.innerHTML = rellenar(t.mensajeMesa, datosMensaje);
-                mostrarCroquis(encontrado.table);
-            }
-
+            ultimoEncontrado = encontrado;
+            pintarResultado(encontrado);
             inputBlock.classList.add('oculto');
             btnAccion.innerText = t.botonRegresar;
             enModoResultado = true;
-
         } else {
             selectorResultado.innerHTML = `<span class='error'>${t.errorNombre}<br><span class='error-hint'>${t.errorHint}</span></span>`;
             mapaArea.classList.remove('visible');
@@ -367,17 +448,17 @@
     }
 
     function regresarHome() {
-        const t = CONFIG.textos;
-        document.getElementById('subtitulo').innerText = t.instrucciones;
         document.getElementById('nombreInvitado').value = "";
         document.getElementById('resultado').innerHTML = "";
         document.getElementById('mapaArea').classList.remove('visible');
         ocultarLista();
         document.getElementById('inputBlock').classList.remove('oculto');
-        document.getElementById('btnAccion').innerText = t.botonBuscar;
         enModoResultado = false;
+        ultimoEncontrado = null;
+        aplicarTextos();
     }
 
+    /* ═══════════ AUTOCOMPLETADO EN TIEMPO REAL ═══════════ */
     const inputNombre  = document.getElementById('nombreInvitado');
     const listaSug     = document.getElementById('listaSugerencias');
     let indiceActivo   = -1;
@@ -458,9 +539,11 @@
         if (e.key === 'Enter' && !enModoResultado) buscarMesa();
     });
 
+    /* ═══════════ INICIO ═══════════ */
     if (typeof CONFIG === 'undefined') {
         console.error('Falta el archivo config.js junto al index.html');
     } else {
+        iniciarIdioma();
         aplicarConfiguracion();
         cargarInvitados();
     }
